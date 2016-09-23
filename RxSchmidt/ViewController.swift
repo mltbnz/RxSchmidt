@@ -8,18 +8,56 @@
 
 import UIKit
 
-class ViewController: UIViewController {
+class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSource {
+    
+    var shownCities = [String]()
+    let allCities = ["New York", "London", "Oslo", "Warsaw", "Berlin", "Praga"]
+    let disposeBag = DisposeBag()
+    
+    @IBOutlet weak var tableView: UITableView! {
+        didSet {
+            self.tableView.dataSource = self
+            self.tableView.delegate = self
+        }
+    }
+    @IBOutlet weak var searchBar: UISearchBar!
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        // Do any additional setup after loading the view, typically from a nib.
+//        self.observeSearchBar()
     }
-
-    override func didReceiveMemoryWarning() {
-        super.didReceiveMemoryWarning()
-        // Dispose of any resources that can be recreated.
+    
+    func numberOfSections(in tableView: UITableView) -> Int {
+        return 1
     }
+    
+    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+        return self.shownCities.count
+    }
+    
+    func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        let cell = UITableViewCell(style: .default, reuseIdentifier: "cityCell")
+        cell.textLabel?.text = shownCities[indexPath.row]
+        return cell
+    }
+}
 
+import RxCocoa
+import RxSwift
 
+extension ViewController {
+    
+    func observeSearchBar() {
+        self.searchBar
+            .rx.text
+            .throttle(0.5, scheduler: MainScheduler.instance)
+            .distinctUntilChanged()
+            .filter { $0.characters.count > 0 }
+            .subscribe { [unowned self](query) in
+                self.shownCities = self.allCities.filter { $0.hasPrefix(query.element!) }
+                self.tableView.reloadData()
+        }
+        .addDisposableTo(self.disposeBag)
+    }
 }
 
